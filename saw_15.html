@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Tabel SAW 15 Responden (Dinamis)</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h2 { margin-top: 40px; }
+    table { border-collapse: collapse; margin-bottom: 20px; width: 100%; }
+    th, td { border: 1px solid #999; padding: 6px 10px; text-align: center; }
+    th { background: #eee; }
+    .success { color: green; font-weight: bold; }
+    .primary { color: blue; font-weight: bold; }
+    .warning { color: orange; font-weight: bold; }
+    .danger { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>Perhitungan SAW (15 Responden, Normalisasi Dinamis)</h1>
+<div id="output"></div>
+
+<script>
+// ====== PARAM SAW ======
+const bobot = { pendapatan: 0.27, pekerjaan: 0.27, tanggungan: 0.25, rumah: 0.21 };
+const tipe = { pendapatan: 'cost', pekerjaan: 'cost', tanggungan: 'benefit', rumah: 'cost' };
+
+// ====== DATA RESPONDEN ======
+const responden = [
+  // --- Golongan A (4) ---
+  {pendapatan:1, pekerjaan:1, tanggungan:5, rumah:1},
+  {pendapatan:1, pekerjaan:1, tanggungan:4, rumah:1},
+  {pendapatan:1, pekerjaan:2, tanggungan:5, rumah:1},
+  {pendapatan:2, pekerjaan:1, tanggungan:5, rumah:1},
+
+  // --- Golongan B (4) ---
+  {pendapatan:2, pekerjaan:2, tanggungan:4, rumah:2},
+  {pendapatan:2, pekerjaan:3, tanggungan:3, rumah:2},
+  {pendapatan:3, pekerjaan:2, tanggungan:3, rumah:2},
+  {pendapatan:2, pekerjaan:2, tanggungan:3, rumah:3},
+
+  // --- Golongan C (4) ---
+  {pendapatan:3, pekerjaan:3, tanggungan:2, rumah:3},
+  {pendapatan:4, pekerjaan:3, tanggungan:2, rumah:3},
+  {pendapatan:3, pekerjaan:4, tanggungan:2, rumah:4},
+  {pendapatan:4, pekerjaan:4, tanggungan:2, rumah:4},
+
+  // --- Tidak Layak (3) ---
+  {pendapatan:5, pekerjaan:5, tanggungan:1, rumah:5},
+  {pendapatan:5, pekerjaan:4, tanggungan:1, rumah:5},
+  {pendapatan:4, pekerjaan:5, tanggungan:1, rumah:5},
+];
+
+
+// ====== HITUNG MIN & MAX SETIAP KRITERIA ======
+function getMinMax(data) {
+  let result = {};
+  Object.keys(bobot).forEach(k => {
+    let values = data.map(d => d[k]);
+    result[k] = { min: Math.min(...values), max: Math.max(...values) };
+  });
+  return result;
+}
+const minMax = getMinMax(responden);
+
+// ====== NORMALISASI DINAMIS ======
+function normalize(val, type, min, max) {
+  if (type === 'benefit') {
+    return val / max;
+  } else {
+    return min / val;
+  }
+}
+
+// ====== HITUNG SAW ======
+function hitungSAW(val) {
+  let skor = 0, rows = '';
+  Object.keys(bobot).forEach(k => {
+    const norm = normalize(val[k], tipe[k], minMax[k].min, minMax[k].max);
+    const skorK = norm * bobot[k];
+    rows += `<tr>
+      <td>${k.toUpperCase()}</td>
+      <td>${val[k]}</td>
+      <td>${norm.toFixed(3)}</td>
+      <td>${bobot[k]}</td>
+      <td>${skorK.toFixed(3)}</td>
+    </tr>`;
+    skor += skorK;
+  });
+  return { skor, rows };
+}
+
+// ====== TENTUKAN KATEGORI ======
+function determineCategory(score) {
+  if (score >= 0.75) return { golongan: 'A', kuota: 1000, class: 'success' };
+  if (score >= 0.60) return { golongan: 'B', kuota: 750, class: 'primary' };
+  if (score >= 0.45) return { golongan: 'C', kuota: 500, class: 'warning' };
+  return { golongan: 'Tidak Layak', kuota: 0, class: 'danger' };
+}
+
+// ====== CETAK TABEL ======
+let html = '';
+responden.forEach((r, i) => {
+  const hasil = hitungSAW(r);
+  const cat = determineCategory(hasil.skor);
+  html += `<h2>Responden ${i+1} - Skor: ${hasil.skor.toFixed(3)} 
+              <span class="${cat.class}">[Golongan ${cat.golongan}, Kuota: ${cat.kuota}]</span></h2>`;
+  html += `<table>
+    <tr><th>Kriteria</th><th>Nilai</th><th>Normalisasi</th><th>Bobot</th><th>Skor</th></tr>
+    ${hasil.rows}
+    <tr><td colspan="4"><b>Total Skor</b></td><td><b>${hasil.skor.toFixed(3)}</b></td></tr>
+  </table>`;
+});
+document.getElementById('output').innerHTML = html;
+</script>
+
+</body>
+</html>

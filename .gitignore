@@ -1,0 +1,26 @@
+# Database / data
+*.sql
+
+# Log
+*.log
+
+# Runtime JSON
+finger.json
+rfid.json
+
+# Environment / credentials
+.env
+.env.*
+*.env
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
